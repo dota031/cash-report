@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Đếm Doanh Thu</title>
+    
+    <!-- PWA Primary Meta Tags -->
+    <meta name="theme-color" content="#15803d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Đếm Doanh Thu">
+    <meta name="application-name" content="Đếm Doanh Thu">
+
+    <!-- Dynamic Web App Manifest placeholder -->
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+    <!-- TailWind CSS & FontAwesome CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html, body {
+            height: 100%;
+            height: 100vh;
+            height: -webkit-fill-available;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Prevent iOS automatic zoom on number inputs */
+        input[type="number"] {
+            font-size: 15px !important;
+        }
+
+        /* Hide HTML5 spin arrows */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col justify-between overflow-hidden select-none bg-gray-100">
+
+    <header class="bg-brand-700 text-white px-3 py-2 flex justify-between items-center shadow-sm z-20 flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-base text-green-200"></i>
+            <h1 class="text-sm font-bold tracking-tight">Đếm doanh thu</h1>
+        </div>
+        <div class="flex items-center gap-1">
+            <button id="reset-top-btn" class="p-1.5 hover:bg-brand-800 rounded-lg transition active:scale-95 text-green-100 flex items-center gap-1 text-xs font-semibold" title="Đặt lại từ đầu">
+                <i class="fa-solid fa-rotate-right text-xs"></i>
+                <span>Làm mới</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 px-2 py-1 overflow-hidden flex flex-col max-w-lg mx-auto w-full min-h-0">
+        <div id="denominations-list" class="flex flex-col h-full justify-between gap-0.5 my-auto">
+            <!-- Rows dynamically injected via JS -->
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 px-3 py-1.5 shadow-md z-20 flex-shrink-0 max-w-lg mx-auto w-full">
+        <!-- Compact Total Display -->
+        <div class="flex justify-between items-center mb-1 px-0.5">
+            <span class="text-gray-500 uppercase font-bold text-[10px] tracking-wider">TỔNG CỘNG</span>
+            <div class="text-right flex items-baseline gap-2">
+                <span id="total-notes-count" class="text-[11px] text-gray-500 font-medium">0 tờ</span>
+                <span id="grand-total" class="text-lg sm:text-xl font-extrabold text-brand-700 leading-none">0 đ</span>
+            </div>
+        </div>
+
+        <!-- Action Control Buttons -->
+        <div class="grid grid-cols-2 gap-2">
+            <button id="btn-clear" class="py-1.5 px-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 border border-gray-300 shadow-xs">
+                <i class="fa-solid fa-trash-can text-red-500 text-xs"></i>
+                <span>Xóa tất cả</span>
+            </button>
+            <button id="btn-quick-fill" class="py-1.5 px-3 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-bolt text-amber-300 text-xs"></i>
+                <span>Nhập nhanh</span>
+            </button>
+        </div>
+    </footer>
+
+    <div id="quick-fill-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-white rounded-xl p-4 w-full max-w-sm shadow-2xl transition-all">
+            <div class="flex justify-between items-center mb-2 border-b pb-1.5">
+                <h3 class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Nhập nhanh bằng chuỗi
+                </h3>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <p class="text-[11px] text-gray-500 mb-2">Dán danh sách số tờ tiền (500k -> 500đ) cách nhau bằng dấu cách hoặc xuống dòng.</p>
+            
+            <textarea id="quick-input-text" rows="3" placeholder="Ví dụ: 10 5 20 0 12" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-brand-500 focus:outline-none text-xs text-gray-800 font-mono mb-3"></textarea>
+
+            <div class="flex gap-2 justify-end">
+                <button id="btn-cancel-modal" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200">Hủy</button>
+                <button id="btn-apply-modal" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 shadow-xs">Áp dụng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-14 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-3 py-1.5 rounded-full text-[11px] font-medium shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        Thông báo
+    </div>
+
+    <script>
+        // Register a real static service worker (required for GitHub Pages PWA support).
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+                    .catch(err => console.warn('Service worker registration failed:', err));
+            });
+        }
+
+        const DENOMINATIONS = [
+            { value: 500000, label: '500k', color: 'text-emerald-700' },
+            { value: 200000, label: '200k', color: 'text-red-700' },
+            { value: 100000, label: '100k', color: 'text-green-700' },
+            { value: 50000,  label: '50k',  color: 'text-pink-700' },
+            { value: 20000,  label: '20k',  color: 'text-blue-700' },
+            { value: 10000,  label: '10k',  color: 'text-yellow-700' },
+            { value: 5000,   label: '5k',   color: 'text-sky-700' },
+            { value: 2000,   label: '2k',   color: 'text-amber-800' },
+            { value: 1000,   label: '1k',   color: 'text-purple-700' },
+            { value: 500,    label: '500đ', color: 'text-gray-700' }
+        ];
+
+        let counts = {};
+
+        // DOM elements
+        const listContainer = document.getElementById('denominations-list');
+        const grandTotalEl = document.getElementById('grand-total');
+        const totalNotesEl = document.getElementById('total-notes-count');
+        const btnClear = document.getElementById('btn-clear');
+        const btnResetTop = document.getElementById('reset-top-btn');
+        const btnQuickFill = document.getElementById('btn-quick-fill');
+        const modal = document.getElementById('quick-fill-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const btnCancelModal = document.getElementById('btn-cancel-modal');
+        const btnApplyModal = document.getElementById('btn-apply-modal');
+        const quickInputText = document.getElementById('quick-input-text');
+        const toast = document.getElementById('toast');
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+        }
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('cash_counter_counts_pwa_v4', JSON.stringify(counts));
+            } catch (e) {
+                console.error('LocalStorage error:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('cash_counter_counts_pwa_v4');
+                if (saved) {
+                    counts = JSON.parse(saved);
+                } else {
+                    resetCounts();
+                }
+            } catch (e) {
+                resetCounts();
+            }
+        }
+
+        function resetCounts() {
+            DENOMINATIONS.forEach(item => {
+                counts[item.value] = 0;
+            });
+        }
+
+        function renderRows() {
+            listContainer.innerHTML = '';
+
+            DENOMINATIONS.forEach((denom) => {
+                const val = denom.value;
+                const count = counts[val] || 0;
+                const total = val * count;
+
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between px-2.5 bg-white rounded-lg border border-gray-200/90 shadow-2xs flex-1 my-0.5 min-h-[34px]`;
+
+                row.innerHTML = `
+                    <div class="w-12 flex items-center">
+                        <span class="font-black text-sm sm:text-base ${denom.color} tracking-tight">${denom.label}</span>
+                    </div>
+
+                    <span class="text-gray-300 font-bold text-[10px] px-0.5">×</span>
+
+                    <div class="flex-1 max-w-[85px] mx-1">
+                        <input type="number" 
+                               min="0" 
+                               placeholder="0"
+                               data-value="${val}"
+                               value="${count > 0 ? count : ''}" 
+                               class="denom-input w-full text-center font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-md py-0.5 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition text-sm">
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <button data-action="minus" data-value="${val}" class="btn-step w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold flex items-center justify-center shadow-xs active:scale-90 transition">
+                            <i class="fa-solid fa-minus text-[10px]"></i>
+                        </button>
+                        <button data-action="plus" data-value="${val}" class="btn-step w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold flex items-center justify-center shadow-xs active:scale-90 transition">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <div class="w-20 text-right">
+                        <span id="row-total-${val}" class="font-bold text-xs ${total > 0 ? 'text-brand-700 font-extrabold' : 'text-gray-400'}">${formatMoney(total)}</span>
+                    </div>
+                `;
+
+                listContainer.appendChild(row);
+            });
+
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let grandTotal = 0;
+            let totalNotes = 0;
+
+            DENOMINATIONS.forEach(denom => {
+                const val = denom.value;
+                const count = parseInt(counts[val]) || 0;
+                const subtotal = val * count;
+                grandTotal += subtotal;
+                totalNotes += count;
+
+                const rowTotalEl = document.getElementById(`row-total-${val}`);
+                if (rowTotalEl) {
+                    rowTotalEl.textContent = formatMoney(subtotal);
+                    if (subtotal > 0) {
+                        rowTotalEl.className = 'font-extrabold text-xs text-brand-700';
+                    } else {
+                        rowTotalEl.className = 'font-bold text-xs text-gray-400';
+                    }
+                }
+            });
+
+            grandTotalEl.textContent = formatMoney(grandTotal);
+            totalNotesEl.textContent = `${totalNotes.toLocaleString('vi-VN')} tờ`;
+
+            saveState();
+        }
+
+        listContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-step');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const val = parseInt(btn.dataset.value);
+            let current = counts[val] || 0;
+
+            if (action === 'plus') {
+                counts[val] = current + 1;
+            } else if (action === 'minus') {
+                counts[val] = Math.max(0, current - 1);
+            }
+
+            const input = listContainer.querySelector(`input[data-value="${val}"]`);
+            if (input) {
+                input.value = counts[val] > 0 ? counts[val] : '';
+            }
+
+            updateTotals();
+        });
+
+        listContainer.addEventListener('input', (e) => {
+            if (e.target.classList.contains('denom-input')) {
+                const val = parseInt(e.target.dataset.value);
+                const rawVal = e.target.value.trim();
+                const num = parseInt(rawVal);
+
+                if (isNaN(num) || num <= 0) {
+                    counts[val] = 0;
+                } else {
+                    counts[val] = num;
+                }
+
+                updateTotals();
+            }
+        });
+
+        function handleClearAll() {
+            resetCounts();
+            renderRows();
+            showToast('Đã xóa tất cả!');
+        }
+
+        btnClear.addEventListener('click', handleClearAll);
+        btnResetTop.addEventListener('click', handleClearAll);
+
+        btnQuickFill.addEventListener('click', () => {
+            quickInputText.value = '';
+            modal.classList.remove('hidden');
+            quickInputText.focus();
+        });
+
+        const closeModal = () => modal.classList.add('hidden');
+        closeModalBtn.addEventListener('click', closeModal);
+        btnCancelModal.addEventListener('click', closeModal);
+
+        btnApplyModal.addEventListener('click', () => {
+            const raw = quickInputText.value.trim();
+            if (raw) {
+                const numbers = raw.split(/[\s,;\n]+/).map(n => parseInt(n)).filter(n => !isNaN(n));
+                if (numbers.length > 0) {
+                    resetCounts();
+                    numbers.forEach((num, index) => {
+                        if (index < DENOMINATIONS.length) {
+                            counts[DENOMINATIONS[index].value] = Math.max(0, num);
+                        }
+                    });
+                    renderRows();
+                    showToast('Đã áp dụng!');
+                }
+            }
+            closeModal();
+        });
+
+        window.addEventListener('load', () => {
+            loadState();
+            renderRows();
+        });
+    </script>
+</body>
+</html>
