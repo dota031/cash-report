@@ -1,14 +1,3 @@
-# Đếm Doanh Thu — GitHub Pages PWA
-
-## Tải lên GitHub
-1. Tạo một repository mới, ví dụ `dem-doanh-thu`.
-2. Mở repository → **Add file** → **Upload files**.
-3. Kéo thả NỘI DUNG của thư mục này (không tải ZIP lên nguyên dạng): `index.html`, `manifest.webmanifest`, `service-worker.js`, `.nojekyll`, và thư mục `icons`.
-4. Nhấn **Commit changes**.
-5. Vào **Settings → Pages**.
-6. Ở **Build and deployment**, chọn **Deploy from a branch**; Branch `main`, folder `/(root)`; nhấn **Save**.
-7. Đợi GitHub Actions triển khai xong, rồi mở URL được hiển thị ở Settings → Pages.
-
 ## Cài trên điện thoại
 - iPhone: mở URL bằng Safari → Share → Add to Home Screen.
 - Android: mở URL bằng Chrome → menu ⋮ → Install app hoặc Add to Home screen.
